@@ -21,17 +21,13 @@ async def getch():
 actions = {}
 
 def action_down():
-    return pb.Action(type=pb.ActionType.Movement,
-                       movement_action=pb.MovementAction(direction=pb.MovementDirection.Down))
+    return pb.Action(type=pb.ActionType.MoveDown)
 def action_up():
-    return pb.Action(type=pb.ActionType.Movement,
-                       movement_action=pb.MovementAction(direction=pb.MovementDirection.Up))
+    return pb.Action(type=pb.ActionType.MoveUp)
 def action_right():
-    return pb.Action(type=pb.ActionType.Movement,
-                       movement_action=pb.MovementAction(direction=pb.MovementDirection.Right))
+    return pb.Action(type=pb.ActionType.MoveRight)
 def action_left():
-    return pb.Action(type=pb.ActionType.Movement,
-                       movement_action=pb.MovementAction(direction=pb.MovementDirection.Left))
+    return pb.Action(type=pb.ActionType.MoveLeft)
 
 def init_actions(args):
     global actions
@@ -71,6 +67,7 @@ async def main(args):
                 await websocket.send(buffer.SerializeToString())
             except Exception as e:
                 print(f"[!] Exception: {e}")
+                break
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Client arguments")

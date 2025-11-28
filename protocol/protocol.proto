@@ -3,6 +3,7 @@ syntax = "proto3";
 enum Status {
   Ok = 0;
   Error = 1;
+  AlreadyConnected = 2;
 }
 
 message Hello {
@@ -13,22 +14,13 @@ message Bye {
   Status status = 1;
 }
 
-enum MovementDirection {
-  Up = 0;
-  Down = 1;
-  Left = 2;
-  Right = 3;
-}
-message MovementAction {
-  MovementDirection direction = 1;
-}
-
 enum ActionType {
-  Movement = 0;
-  Disconnect = 1;
-  KeepAlive = 2;
+  Disconnect = 0;
+  MoveUp = 1;
+  MoveDown = 2;
+  MoveRight = 3;
+  MoveLeft = 4;
 }
 message Action {
   ActionType type = 1;
-  optional MovementAction movement_action = 2;
 }
