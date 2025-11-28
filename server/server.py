@@ -1,4 +1,5 @@
-import protocol_pb2 as pb
+
+from protocol import protocol_pb2 as pb
 import websockets
 import asyncio
 
@@ -18,10 +19,15 @@ async def client_loop(client, websocket):
             if not action.HasField('movement_action'):
                 print(f"[!] action type is movement, without movement_action set.")
                 return
-            if action.movement_action.direction == pb.MovementDirection.Up: print(f"[+] {client}: up")
-            if action.movement_action.direction == pb.MovementDirection.Down: print(f"[+] {client}: down")
-            if action.movement_action.direction == pb.MovementDirection.Left: print(f"[+] {client}: left")
-            if action.movement_action.direction == pb.MovementDirection.Right: print(f"[+] {client}: right")
+
+            if action.movement_action.direction == pb.MovementDirection.Up:
+                print(f"[+] {client}: up")
+            if action.movement_action.direction == pb.MovementDirection.Down:
+                print(f"[+] {client}: down")
+            if action.movement_action.direction == pb.MovementDirection.Left:
+                print(f"[+] {client}: left")
+            if action.movement_action.direction == pb.MovementDirection.Right:
+                print(f"[+] {client}: right")
 
 async def handle_connection(websocket):
     try:

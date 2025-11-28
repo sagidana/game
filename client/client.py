@@ -1,4 +1,4 @@
-import protocol_pb2 as pb
+from protocol import protocol_pb2 as pb
 import websockets
 import asyncio
 import argparse
