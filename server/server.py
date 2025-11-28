@@ -14,19 +14,43 @@ class Server():
 
         self.__init_actions()
 
-    async def propagate
-    def client_move_up(self, client):
-        x = client.position[0]
-        y = client.position[1]
-
-
+    async def client_move_up(self, client):
+        client.position[1] = max(0, client.position[1] - 1)
         print(f"[+] client: {client.user_id} is moving up")
-    def client_move_down(self, client):
+        update = pb.Update(players_updates=[
+                        pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1])
+                        ])
+        return update.SerializeToString()
+    async def client_move_down(self, client):
+        client.position[1] += 1
         print(f"[+] client: {client.user_id} is moving down")
-    def client_move_right(self, client):
+        update = pb.Update(players_updates=[
+                        pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1])
+                        ])
+        return update.SerializeToString()
+    async def client_move_right(self, client):
+        client.position[0] =client.position[0] + 1
         print(f"[+] client: {client.user_id} is moving right")
-    def client_move_left(self, client):
+
+        update = pb.Update(players_updates=[
+                        pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1])
+                        ])
+        return update.SerializeToString()
+    async def client_move_left(self, client):
+        client.position[0] = max(0, client.position[0] - 1)
         print(f"[+] client: {client.user_id} is moving left")
+        update = pb.Update(players_updates=[
+                        pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1])
+                        ])
+        return update.SerializeToString()
 
     def __init_actions(self):
         self.actions = {}
@@ -43,7 +67,9 @@ class Server():
             if action.type == pb.ActionType.Disconnect: return
 
             if action.type in self.actions:
-                self.actions[action.type](client)
+                buffer = await self.actions[action.type](client)
+                if buffer:
+                    await client.websocket.send(buffer)
             else:
                 print(f"[!] client: {client.user_id} action ({action.type}) wasnt' found in supported actions.")
 
@@ -57,7 +83,7 @@ class Server():
             # TODO: add authentication
             user_id = hello.id
             # we might want to fetch that from db.
-            current_client = client.Client(user_id, websocket)
+            current_client = client.Client(user_id, websocket, position=[0,0])
 
             is_ok = False
             async with self.connected_clients_lock:
@@ -90,4 +116,7 @@ class Server():
 if __name__ == "__main__":
     server = Server()
     print(f"[+] serving...")
-    asyncio.run(server.serve())
+    try:
+        asyncio.run(server.serve())
+    except KeyboardInterrupt:
+        print(f"[+] CTRL-C closing server")

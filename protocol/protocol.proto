@@ -24,3 +24,13 @@ enum ActionType {
 message Action {
   ActionType type = 1;
 }
+
+message PlayerUpdate {
+  string id = 1;
+  uint32 x = 2;
+  uint32 y = 3;
+}
+
+message Update {
+  repeated PlayerUpdate players_updates = 1;
+}

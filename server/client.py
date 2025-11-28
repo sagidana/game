@@ -1,5 +1,5 @@
 class Client():
-    def __init__(self, user_id, socket, position=(0,0)):
+    def __init__(self, user_id, websocket, position):
         self.user_id = user_id
-        self.socket = socket
+        self.websocket = websocket
         self.position = position

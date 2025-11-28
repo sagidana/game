@@ -1,73 +1,114 @@
 from protocol import protocol_pb2 as pb
+from . import log
+import threading
 import websockets
 import asyncio
 import argparse
-import termios
+import queue
 import sys
-import tty
 
+from . import screen
 
-async def getch():
-    fd = sys.stdin.fileno()
-    old_settings = termios.tcgetattr(fd)
-    try:
-        tty.setraw(fd)
-        ch = await asyncio.to_thread(sys.stdin.read, 1)
-        # ch = sys.stdin.read(1)  # read one character
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    return ch
+class Client():
+    def __init__(self, args):
+        self.args = args
+        self.to_exit = False
+        self.send_queue = queue.Queue()
+        self.screen_queue = queue.Queue()
+        self.init_actions()
+        self.screen = screen.Screen(self.screen_queue)
 
-actions = {}
+        thread = threading.Thread(target=self.screen.run)
+        thread.start()
 
-def action_down():
-    return pb.Action(type=pb.ActionType.MoveDown)
-def action_up():
-    return pb.Action(type=pb.ActionType.MoveUp)
-def action_right():
-    return pb.Action(type=pb.ActionType.MoveRight)
-def action_left():
-    return pb.Action(type=pb.ActionType.MoveLeft)
+    def action_down(self):
+        return pb.Action(type=pb.ActionType.MoveDown)
+    def action_up(self):
+        return pb.Action(type=pb.ActionType.MoveUp)
+    def action_right(self):
+        return pb.Action(type=pb.ActionType.MoveRight)
+    def action_left(self):
+        return pb.Action(type=pb.ActionType.MoveLeft)
 
-def init_actions(args):
-    global actions
+    def init_actions(self):
+        self.actions = {}
 
-    actions['j'] = action_down
-    actions['k'] = action_up
-    actions['h'] = action_left
-    actions['l'] = action_right
+        self.actions['j'] = self.action_down
+        self.actions['k'] = self.action_up
+        self.actions['h'] = self.action_left
+        self.actions['l'] = self.action_right
 
-async def main(args):
-    uri = "ws://localhost:8765"
-    async with websockets.connect(uri) as websocket:
-        hello = pb.Hello()
-        hello.id = args.name
+    def actions_loop(self, websocket):
+        while not self.to_exit:
+            key = sys.stdin.read(1)
 
-        await websocket.send(hello.SerializeToString())
-        response_bytes = await websocket.recv()
+            log.glog(f"[+] {key=}")
+            if key == '\x03':
+                self.send_queue.put([0])
+                break; # ctrl-c
 
-        bye = pb.Bye()
-        bye.ParseFromString(response_bytes)
-        if bye.status != pb.Status.Ok:
-            print(f"[!] server returned: {bye.status=}")
-            return
-
-        while True:
-            global actions
-            key = await getch()
-
-            print(f"[+] {key=}")
-            if key == '\x03': break; # ctrl-c
-
-            action = actions.get(key, None)
+            action = self.actions.get(key, None)
             if not action: continue
 
+            buffer = action()
+            if buffer:
+                self.send_queue.put([1, buffer.SerializeToString()])
+
+    async def sender(self, websocket):
+        while True:
             try:
+                key = await asyncio.to_thread(sys.stdin.read, 1)
+
+                log.glog(f"[+] {key=}")
+                if key == '\x03':
+                    await websocket.close()
+                    break; # ctrl-c
+
+                action = self.actions.get(key, None)
+                if not action: continue
+
                 buffer = action()
-                await websocket.send(buffer.SerializeToString())
+                if buffer:
+                    await websocket.send(buffer.SerializeToString())
             except Exception as e:
-                print(f"[!] Exception: {e}")
-                break
+                log.glog(f"[!] sender handler exception: {e}")
+        log.glog(f"[+] sender handler finished.")
+
+    async def receiver(self, websocket):
+        async for message_bytes in websocket:
+            try:
+                update = pb.Update()
+                update.ParseFromString(message_bytes)
+
+                for player_update in update.players_updates:
+                    self.screen_queue.put([2, player_update.id, player_update.x, player_update.y])
+            except Exception as e:
+                log.glog(f"{e=}")
+        log.glog(f"[+] receiver handler finished.")
+
+    async def run(self):
+        uri = "ws://localhost:8765"
+        try:
+            async with websockets.connect(uri) as websocket:
+                hello = pb.Hello()
+                hello.id = self.args.name
+
+                await websocket.send(hello.SerializeToString())
+                response_bytes = await websocket.recv()
+
+                bye = pb.Bye()
+                bye.ParseFromString(response_bytes)
+                if bye.status != pb.Status.Ok:
+                    log.glog(f"[!] server returned: {bye.status=}")
+                    return
+
+                await asyncio.gather(self.receiver(websocket), self.sender(websocket))
+        except Exception as e:
+            log.glog(f"[!] run() exception: {e}")
+        finally:
+            self.screen_queue.put([1]) # signal screen thread to exit
+            log.glog(f"[+] runner finished.")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Client arguments")
@@ -75,6 +116,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    init_actions(args)
+    client = Client(args)
 
-    asyncio.run(main(args))
+    asyncio.run(client.run())
+
