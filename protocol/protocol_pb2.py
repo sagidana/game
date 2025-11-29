@@ -13,25 +13,25 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17protocol/protocol.proto\"\x13\n\x05Hello\x12\n\n\x02id\x18\x01 \x01(\t\"\x1e\n\x03\x42ye\x12\x17\n\x06status\x18\x01 \x01(\x0e\x32\x07.Status\"#\n\x06\x41\x63tion\x12\x19\n\x04type\x18\x01 \x01(\x0e\x32\x0b.ActionType\"0\n\x0cPlayerUpdate\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\r\x12\t\n\x01y\x18\x03 \x01(\r\"0\n\x06Update\x12&\n\x0fplayers_updates\x18\x01 \x03(\x0b\x32\r.PlayerUpdate*1\n\x06Status\x12\x06\n\x02Ok\x10\x00\x12\t\n\x05\x45rror\x10\x01\x12\x14\n\x10\x41lreadyConnected\x10\x02*S\n\nActionType\x12\x0e\n\nDisconnect\x10\x00\x12\n\n\x06MoveUp\x10\x01\x12\x0c\n\x08MoveDown\x10\x02\x12\r\n\tMoveRight\x10\x03\x12\x0c\n\x08MoveLeft\x10\x04\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17protocol/protocol.proto\"\x13\n\x05Hello\x12\n\n\x02id\x18\x01 \x01(\t\"\x1e\n\x03\x42ye\x12\x17\n\x06status\x18\x01 \x01(\x0e\x32\x07.Status\",\n\rPlayerMessage\x12\x1b\n\x06\x61\x63tion\x18\x01 \x01(\x0e\x32\x0b.ActionType\"0\n\x0cPlayerUpdate\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\r\x12\t\n\x01y\x18\x03 \x01(\r\"7\n\rServerMessage\x12&\n\x0fplayers_updates\x18\x01 \x03(\x0b\x32\r.PlayerUpdate*1\n\x06Status\x12\x06\n\x02Ok\x10\x00\x12\t\n\x05\x45rror\x10\x01\x12\x14\n\x10\x41lreadyConnected\x10\x02*S\n\nActionType\x12\x0e\n\nDisconnect\x10\x00\x12\n\n\x06MoveUp\x10\x01\x12\x0c\n\x08MoveDown\x10\x02\x12\r\n\tMoveRight\x10\x03\x12\x0c\n\x08MoveLeft\x10\x04\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'protocol.protocol_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _STATUS._serialized_start=217
-  _STATUS._serialized_end=266
-  _ACTIONTYPE._serialized_start=268
-  _ACTIONTYPE._serialized_end=351
+  _STATUS._serialized_start=233
+  _STATUS._serialized_end=282
+  _ACTIONTYPE._serialized_start=284
+  _ACTIONTYPE._serialized_end=367
   _HELLO._serialized_start=27
   _HELLO._serialized_end=46
   _BYE._serialized_start=48
   _BYE._serialized_end=78
-  _ACTION._serialized_start=80
-  _ACTION._serialized_end=115
-  _PLAYERUPDATE._serialized_start=117
-  _PLAYERUPDATE._serialized_end=165
-  _UPDATE._serialized_start=167
-  _UPDATE._serialized_end=215
+  _PLAYERMESSAGE._serialized_start=80
+  _PLAYERMESSAGE._serialized_end=124
+  _PLAYERUPDATE._serialized_start=126
+  _PLAYERUPDATE._serialized_end=174
+  _SERVERMESSAGE._serialized_start=176
+  _SERVERMESSAGE._serialized_end=231
 # @@protoc_insertion_point(module_scope)

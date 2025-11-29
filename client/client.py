@@ -12,7 +12,6 @@ from . import screen
 class Client():
     def __init__(self, args):
         self.args = args
-        self.to_exit = False
         self.send_queue = queue.Queue()
         self.screen_queue = queue.Queue()
         self.init_actions()
@@ -22,13 +21,13 @@ class Client():
         thread.start()
 
     def action_down(self):
-        return pb.Action(type=pb.ActionType.MoveDown)
+        return pb.PlayerMessage(action=pb.ActionType.MoveDown)
     def action_up(self):
-        return pb.Action(type=pb.ActionType.MoveUp)
+        return pb.PlayerMessage(action=pb.ActionType.MoveUp)
     def action_right(self):
-        return pb.Action(type=pb.ActionType.MoveRight)
+        return pb.PlayerMessage(action=pb.ActionType.MoveRight)
     def action_left(self):
-        return pb.Action(type=pb.ActionType.MoveLeft)
+        return pb.PlayerMessage(action=pb.ActionType.MoveLeft)
 
     def init_actions(self):
         self.actions = {}
@@ -37,22 +36,6 @@ class Client():
         self.actions['k'] = self.action_up
         self.actions['h'] = self.action_left
         self.actions['l'] = self.action_right
-
-    def actions_loop(self, websocket):
-        while not self.to_exit:
-            key = sys.stdin.read(1)
-
-            log.glog(f"[+] {key=}")
-            if key == '\x03':
-                self.send_queue.put([0])
-                break; # ctrl-c
-
-            action = self.actions.get(key, None)
-            if not action: continue
-
-            buffer = action()
-            if buffer:
-                self.send_queue.put([1, buffer.SerializeToString()])
 
     async def sender(self, websocket):
         while True:
@@ -72,15 +55,16 @@ class Client():
                     await websocket.send(buffer.SerializeToString())
             except Exception as e:
                 log.glog(f"[!] sender handler exception: {e}")
+                break
         log.glog(f"[+] sender handler finished.")
 
     async def receiver(self, websocket):
         async for message_bytes in websocket:
             try:
-                update = pb.Update()
-                update.ParseFromString(message_bytes)
+                server_message = pb.ServerMessage()
+                server_message.ParseFromString(message_bytes)
 
-                for player_update in update.players_updates:
+                for player_update in server_message.players_updates:
                     self.screen_queue.put([2, player_update.id, player_update.x, player_update.y])
             except Exception as e:
                 log.glog(f"{e=}")

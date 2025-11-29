@@ -4,10 +4,13 @@ from . import server
 from . import client
 import websockets
 import asyncio
+import time
 
 
 class Server():
-    def __init__(self, port=8765):
+    def __init__(self, port=8765, ticks=3):
+        self.to_exit = False
+        self.ticks = ticks
         self.port = port
         self.connected_clients = {}
         self.connected_clients_lock = asyncio.Lock()
@@ -17,7 +20,7 @@ class Server():
     async def client_move_up(self, client):
         client.position[1] = max(0, client.position[1] - 1)
         print(f"[+] client: {client.user_id} is moving up")
-        update = pb.Update(players_updates=[
+        update = pb.ServerMessage(players_updates=[
                         pb.PlayerUpdate(id=client.user_id,
                                         x=client.position[0],
                                         y=client.position[1])
@@ -26,7 +29,7 @@ class Server():
     async def client_move_down(self, client):
         client.position[1] += 1
         print(f"[+] client: {client.user_id} is moving down")
-        update = pb.Update(players_updates=[
+        update = pb.ServerMessage(players_updates=[
                         pb.PlayerUpdate(id=client.user_id,
                                         x=client.position[0],
                                         y=client.position[1])
@@ -36,7 +39,7 @@ class Server():
         client.position[0] =client.position[0] + 1
         print(f"[+] client: {client.user_id} is moving right")
 
-        update = pb.Update(players_updates=[
+        update = pb.ServerMessage(players_updates=[
                         pb.PlayerUpdate(id=client.user_id,
                                         x=client.position[0],
                                         y=client.position[1])
@@ -45,7 +48,7 @@ class Server():
     async def client_move_left(self, client):
         client.position[0] = max(0, client.position[0] - 1)
         print(f"[+] client: {client.user_id} is moving left")
-        update = pb.Update(players_updates=[
+        update = pb.ServerMessage(players_updates=[
                         pb.PlayerUpdate(id=client.user_id,
                                         x=client.position[0],
                                         y=client.position[1])
@@ -61,13 +64,13 @@ class Server():
 
     async def client_loop(self, client, websocket):
         async for message_bytes in websocket:
-            action = pb.Action()
-            action.ParseFromString(message_bytes)
+            player_message = pb.PlayerMessage()
+            player_message.ParseFromString(message_bytes)
 
-            if action.type == pb.ActionType.Disconnect: return
+            if player_message.action == pb.ActionType.Disconnect: return
 
-            if action.type in self.actions:
-                buffer = await self.actions[action.type](client)
+            if player_message.action in self.actions:
+                buffer = await self.actions[player_message.action](client)
                 if buffer:
                     await client.websocket.send(buffer)
             else:
@@ -108,9 +111,34 @@ class Server():
                 print(f"[+] client: {current_client.user_id} disconnected.")
         except websockets.exceptions.ConnectionClosedOK: pass
 
+    async def tick(self):
+        async with self.connected_clients_lock:
+            # construct the update to all players
+            players_updates = []
+            for user_id in self.connected_clients:
+                c = self.connected_clients[user_id]
+                players_updates.append(pb.PlayerUpdate(id=c.user_id, x=c.position[0], y=c.position[1]))
+            server_message = pb.ServerMessage(players_updates=players_updates)
+
+            for user_id in self.connected_clients:
+                await self.connected_clients[user_id].websocket.send(server_message.SerializeToString())
+
+    async def ticks_loop(self):
+        last_tick = 0
+
+        while not self.to_exit:
+            passed = time.time() - last_tick
+
+            time_needed_to_wait = (1.0 / self.ticks) - passed
+
+            if time_needed_to_wait > 0: await asyncio.sleep(time_needed_to_wait)
+
+            last_tick = time.time()
+            await self.tick()
+
     async def serve(self):
         async with websockets.serve(self.handle_new_client, "localhost", self.port):
-            await asyncio.Future()  # Run forever
+            await self.ticks_loop() # Run forever
 
 
 if __name__ == "__main__":

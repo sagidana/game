@@ -21,8 +21,9 @@ enum ActionType {
   MoveRight = 3;
   MoveLeft = 4;
 }
-message Action {
-  ActionType type = 1;
+
+message PlayerMessage {
+  ActionType action = 1;
 }
 
 message PlayerUpdate {
@@ -31,6 +32,6 @@ message PlayerUpdate {
   uint32 y = 3;
 }
 
-message Update {
+message ServerMessage {
   repeated PlayerUpdate players_updates = 1;
 }
