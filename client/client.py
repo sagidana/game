@@ -10,12 +10,15 @@ import sys
 from . import screen
 
 class Client():
-    def __init__(self, args):
+    def __init__(self, args, main_loop):
+        self.main_loop = main_loop
         self.args = args
-        self.send_queue = queue.Queue()
-        self.screen_queue = queue.Queue()
+        self.updates_queue = asyncio.Queue()
+        self.input_queue = asyncio.Queue()
         self.init_actions()
-        self.screen = screen.Screen(self.screen_queue)
+        self.screen = screen.Screen(self.input_queue,
+                                    self.updates_queue,
+                                    self.main_loop)
 
         thread = threading.Thread(target=self.screen.run)
         thread.start()
@@ -40,7 +43,7 @@ class Client():
     async def sender(self, websocket):
         while True:
             try:
-                key = await asyncio.to_thread(sys.stdin.read, 1)
+                key = await self.input_queue.get()
 
                 log.glog(f"[+] {key=}")
                 if key == '\x03':
@@ -60,12 +63,13 @@ class Client():
 
     async def receiver(self, websocket):
         async for message_bytes in websocket:
+            log.glog(f"[+] got update from server")
             try:
                 server_message = pb.ServerMessage()
                 server_message.ParseFromString(message_bytes)
 
                 for player_update in server_message.players_updates:
-                    self.screen_queue.put([2, player_update.id, player_update.x, player_update.y])
+                    await self.updates_queue.put([2, player_update.id, player_update.x, player_update.y])
             except Exception as e:
                 log.glog(f"{e=}")
         log.glog(f"[+] receiver handler finished.")
@@ -90,7 +94,7 @@ class Client():
         except Exception as e:
             log.glog(f"[!] run() exception: {e}")
         finally:
-            self.screen_queue.put([1]) # signal screen thread to exit
+            await self.updates_queue.put([1]) # signal screen thread to exit
             log.glog(f"[+] runner finished.")
 
 
@@ -100,7 +104,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    client = Client(args)
+    main_loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(main_loop)
 
-    asyncio.run(client.run())
-
+    client = Client(args, main_loop)
+    main_loop.run_until_complete(client.run())

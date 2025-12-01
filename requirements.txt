@@ -1,6 +1,9 @@
+cffi==2.0.0
 gevent==25.9.1
 greenlet==3.2.4
 protobuf==6.33.1
+pycparser==2.23
+raylib==5.5.0.3
 websockets==15.0.1
 zope.event==6.1
 zope.interface==8.1.1

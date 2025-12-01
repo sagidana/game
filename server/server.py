@@ -8,7 +8,7 @@ import time
 
 
 class Server():
-    def __init__(self, port=8765, ticks=3):
+    def __init__(self, port=8765, ticks=5):
         self.to_exit = False
         self.ticks = ticks
         self.port = port
@@ -134,7 +134,11 @@ class Server():
             if time_needed_to_wait > 0: await asyncio.sleep(time_needed_to_wait)
 
             last_tick = time.time()
-            await self.tick()
+
+            try:
+                await self.tick()
+            except Exception as e:
+                print(f"tick throw exception: {e}")
 
     async def serve(self):
         async with websockets.serve(self.handle_new_client, "localhost", self.port):
