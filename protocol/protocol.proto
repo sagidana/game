@@ -32,6 +32,18 @@ message PlayerUpdate {
   uint32 y = 3;
 }
 
+message MapUpdate {
+  uint32 x = 1;
+  uint32 y = 2;
+
+  uint32 width = 3;
+  uint32 height = 4;
+
+  repeated uint32 data = 5;
+}
+
 message ServerMessage {
-  repeated PlayerUpdate players_updates = 1;
+  optional PlayerUpdate current = 1;
+  repeated PlayerUpdate players_updates = 2;
+  optional MapUpdate map_update = 3;
 }

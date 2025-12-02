@@ -8,52 +8,16 @@ import time
 
 
 class Server():
-    def __init__(self, port=8765, ticks=5):
+    def __init__(self, port=8765, ticks=30):
         self.to_exit = False
         self.ticks = ticks
         self.port = port
         self.connected_clients = {}
         self.connected_clients_lock = asyncio.Lock()
 
+        self.__load_map()
+
         self.__init_actions()
-
-    async def client_move_up(self, client):
-        client.position[1] = max(0, client.position[1] - 1)
-        print(f"[+] client: {client.user_id} is moving up")
-        update = pb.ServerMessage(players_updates=[
-                        pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1])
-                        ])
-        return update.SerializeToString()
-    async def client_move_down(self, client):
-        client.position[1] += 1
-        print(f"[+] client: {client.user_id} is moving down")
-        update = pb.ServerMessage(players_updates=[
-                        pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1])
-                        ])
-        return update.SerializeToString()
-    async def client_move_right(self, client):
-        client.position[0] =client.position[0] + 1
-        print(f"[+] client: {client.user_id} is moving right")
-
-        update = pb.ServerMessage(players_updates=[
-                        pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1])
-                        ])
-        return update.SerializeToString()
-    async def client_move_left(self, client):
-        client.position[0] = max(0, client.position[0] - 1)
-        print(f"[+] client: {client.user_id} is moving left")
-        update = pb.ServerMessage(players_updates=[
-                        pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1])
-                        ])
-        return update.SerializeToString()
 
     def __init_actions(self):
         self.actions = {}
@@ -62,8 +26,55 @@ class Server():
         self.actions[pb.ActionType.MoveRight] = self.client_move_right
         self.actions[pb.ActionType.MoveLeft] = self.client_move_left
 
-    async def client_loop(self, client, websocket):
-        async for message_bytes in websocket:
+    def __load_map(self):
+        self.map = []
+        with open('server/map') as map_file:
+            for line in map_file.readlines():
+                line = line.strip()
+                self.map.append([ord(c) for c in line])
+
+        self.map_data = []
+        for raw in self.map:
+            self.map_data.extend(raw)
+
+    async def client_move_up(self, client):
+        client.position[1] = max(0, client.position[1] - 1)
+        print(f"[+] client: {client.user_id} is moving up")
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+    async def client_move_down(self, client):
+        client.position[1] += 1
+        print(f"[+] client: {client.user_id} is moving down")
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+    async def client_move_right(self, client):
+        client.position[0] =client.position[0] + 1
+        print(f"[+] client: {client.user_id} is moving right")
+
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+    async def client_move_left(self, client):
+        client.position[0] = max(0, client.position[0] - 1)
+        print(f"[+] client: {client.user_id} is moving left")
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+
+    async def client_loop(self, client):
+        # first update to each client is the map and its current location
+        map_update = pb.MapUpdate(x=0, y=0, width=len(self.map[0]), height=len(self.map), data=self.map_data)
+        current = pb.PlayerUpdate(id=client.user_id, x=client.position[0], y=client.position[1])
+        server_message = pb.ServerMessage(map_update=map_update, current=current)
+        await client.websocket.send(server_message.SerializeToString())
+
+        async for message_bytes in client.websocket:
             player_message = pb.PlayerMessage()
             player_message.ParseFromString(message_bytes)
 
@@ -102,7 +113,7 @@ class Server():
             await websocket.send(pb.Bye(status=pb.Status.Ok).SerializeToString())
             print(f"[+] client: {current_client.user_id} connected.")
             try:
-                await self.client_loop(current_client, websocket)
+                await self.client_loop(current_client)
             except Exception as e:
                 print(f"[!] client_loop exception: {e}")
             finally:
@@ -114,14 +125,17 @@ class Server():
     async def tick(self):
         async with self.connected_clients_lock:
             # construct the update to all players
-            players_updates = []
-            for user_id in self.connected_clients:
-                c = self.connected_clients[user_id]
-                players_updates.append(pb.PlayerUpdate(id=c.user_id, x=c.position[0], y=c.position[1]))
-            server_message = pb.ServerMessage(players_updates=players_updates)
+            for curr_user_id in self.connected_clients:
+                players_updates = []
+                for inner_user_id in self.connected_clients:
+                    if inner_user_id == curr_user_id: continue
+                    c = self.connected_clients[inner_user_id]
+                    players_updates.append(pb.PlayerUpdate(id=c.user_id, x=c.position[0], y=c.position[1]))
 
-            for user_id in self.connected_clients:
-                await self.connected_clients[user_id].websocket.send(server_message.SerializeToString())
+                c = self.connected_clients[curr_user_id]
+                current = pb.PlayerUpdate(id=c.user_id, x=c.position[0], y=c.position[1])
+                server_message = pb.ServerMessage(current=current, players_updates=players_updates)
+                await self.connected_clients[curr_user_id].websocket.send(server_message.SerializeToString())
 
     async def ticks_loop(self):
         last_tick = 0

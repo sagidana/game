@@ -13,17 +13,17 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17protocol/protocol.proto\"\x13\n\x05Hello\x12\n\n\x02id\x18\x01 \x01(\t\"\x1e\n\x03\x42ye\x12\x17\n\x06status\x18\x01 \x01(\x0e\x32\x07.Status\",\n\rPlayerMessage\x12\x1b\n\x06\x61\x63tion\x18\x01 \x01(\x0e\x32\x0b.ActionType\"0\n\x0cPlayerUpdate\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\r\x12\t\n\x01y\x18\x03 \x01(\r\"7\n\rServerMessage\x12&\n\x0fplayers_updates\x18\x01 \x03(\x0b\x32\r.PlayerUpdate*1\n\x06Status\x12\x06\n\x02Ok\x10\x00\x12\t\n\x05\x45rror\x10\x01\x12\x14\n\x10\x41lreadyConnected\x10\x02*S\n\nActionType\x12\x0e\n\nDisconnect\x10\x00\x12\n\n\x06MoveUp\x10\x01\x12\x0c\n\x08MoveDown\x10\x02\x12\r\n\tMoveRight\x10\x03\x12\x0c\n\x08MoveLeft\x10\x04\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17protocol/protocol.proto\"\x13\n\x05Hello\x12\n\n\x02id\x18\x01 \x01(\t\"\x1e\n\x03\x42ye\x12\x17\n\x06status\x18\x01 \x01(\x0e\x32\x07.Status\",\n\rPlayerMessage\x12\x1b\n\x06\x61\x63tion\x18\x01 \x01(\x0e\x32\x0b.ActionType\"0\n\x0cPlayerUpdate\x12\n\n\x02id\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\r\x12\t\n\x01y\x18\x03 \x01(\r\"N\n\tMapUpdate\x12\t\n\x01x\x18\x01 \x01(\r\x12\t\n\x01y\x18\x02 \x01(\r\x12\r\n\x05width\x18\x03 \x01(\r\x12\x0e\n\x06height\x18\x04 \x01(\r\x12\x0c\n\x04\x64\x61ta\x18\x05 \x03(\r\"\x9c\x01\n\rServerMessage\x12#\n\x07\x63urrent\x18\x01 \x01(\x0b\x32\r.PlayerUpdateH\x00\x88\x01\x01\x12&\n\x0fplayers_updates\x18\x02 \x03(\x0b\x32\r.PlayerUpdate\x12#\n\nmap_update\x18\x03 \x01(\x0b\x32\n.MapUpdateH\x01\x88\x01\x01\x42\n\n\x08_currentB\r\n\x0b_map_update*1\n\x06Status\x12\x06\n\x02Ok\x10\x00\x12\t\n\x05\x45rror\x10\x01\x12\x14\n\x10\x41lreadyConnected\x10\x02*S\n\nActionType\x12\x0e\n\nDisconnect\x10\x00\x12\n\n\x06MoveUp\x10\x01\x12\x0c\n\x08MoveDown\x10\x02\x12\r\n\tMoveRight\x10\x03\x12\x0c\n\x08MoveLeft\x10\x04\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'protocol.protocol_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _STATUS._serialized_start=233
-  _STATUS._serialized_end=282
-  _ACTIONTYPE._serialized_start=284
-  _ACTIONTYPE._serialized_end=367
+  _STATUS._serialized_start=415
+  _STATUS._serialized_end=464
+  _ACTIONTYPE._serialized_start=466
+  _ACTIONTYPE._serialized_end=549
   _HELLO._serialized_start=27
   _HELLO._serialized_end=46
   _BYE._serialized_start=48
@@ -32,6 +32,8 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _PLAYERMESSAGE._serialized_end=124
   _PLAYERUPDATE._serialized_start=126
   _PLAYERUPDATE._serialized_end=174
-  _SERVERMESSAGE._serialized_start=176
-  _SERVERMESSAGE._serialized_end=231
+  _MAPUPDATE._serialized_start=176
+  _MAPUPDATE._serialized_end=254
+  _SERVERMESSAGE._serialized_start=257
+  _SERVERMESSAGE._serialized_end=413
 # @@protoc_insertion_point(module_scope)

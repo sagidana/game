@@ -45,7 +45,7 @@ class Client():
             try:
                 key = await self.input_queue.get()
 
-                log.glog(f"[+] {key=}")
+                # log.glog(f"[+] {key=}")
                 if key == '\x03':
                     await websocket.close()
                     break; # ctrl-c
@@ -61,17 +61,31 @@ class Client():
                 break
         log.glog(f"[+] sender handler finished.")
 
+    async def handle_server_message(self, server_message):
+        if server_message.HasField('map_update'):
+            map_update = server_message.map_update
+            await self.updates_queue.put([2,
+                                          map_update.x,
+                                          map_update.y,
+                                          map_update.width,
+                                          map_update.height,
+                                          map_update.data])
+        elif server_message.HasField('current'):
+            current = server_message.current
+            await self.updates_queue.put([3, current.id, current.x, current.y])
+
+        for player_update in server_message.players_updates:
+            await self.updates_queue.put([4, player_update.id, player_update.x, player_update.y])
+
     async def receiver(self, websocket):
         async for message_bytes in websocket:
-            log.glog(f"[+] got update from server")
             try:
                 server_message = pb.ServerMessage()
                 server_message.ParseFromString(message_bytes)
 
-                for player_update in server_message.players_updates:
-                    await self.updates_queue.put([2, player_update.id, player_update.x, player_update.y])
+                await self.handle_server_message(server_message)
             except Exception as e:
-                log.glog(f"{e=}")
+                log.glog(f"receiver handler exception: {e=}")
         log.glog(f"[+] receiver handler finished.")
 
     async def run(self):
