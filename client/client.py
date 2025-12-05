@@ -40,6 +40,14 @@ class Client():
         return pb.PlayerMessage(action=pb.ActionType.HalfDashRight)
     def action_full_dash_right(self):
         return pb.PlayerMessage(action=pb.ActionType.FullDashRight)
+    def action_half_dash_down(self):
+        return pb.PlayerMessage(action=pb.ActionType.HalfDashDown)
+    def action_full_dash_down(self):
+        return pb.PlayerMessage(action=pb.ActionType.FullDashDown)
+    def action_half_dash_up(self):
+        return pb.PlayerMessage(action=pb.ActionType.HalfDashUp)
+    def action_full_dash_up(self):
+        return pb.PlayerMessage(action=pb.ActionType.FullDashUp)
 
     def init_actions(self):
         self.actions = {}
@@ -53,6 +61,11 @@ class Client():
         self.actions['W'] = self.action_full_dash_right
         self.actions['b'] = self.action_half_dash_left
         self.actions['B'] = self.action_full_dash_left
+        self.actions[screen.CTRL_D_KEY] = self.action_half_dash_down
+        self.actions[screen.CTRL_B_KEY] = self.action_full_dash_down
+
+        self.actions[screen.CTRL_U_KEY] = self.action_half_dash_up
+        self.actions[screen.CTRL_F_KEY] = self.action_full_dash_up
 
     async def sender(self, websocket):
         while True:
@@ -60,7 +73,7 @@ class Client():
                 key = await self.input_queue.get()
 
                 log.glog(f"[+] {key=}")
-                if key == '\x03':
+                if key == screen.CTRL_C_KEY:
                     await websocket.close()
                     break; # ctrl-c
 

@@ -25,11 +25,14 @@ class Server():
         self.actions[pb.ActionType.MoveDown] = self.client_move_down
         self.actions[pb.ActionType.MoveRight] = self.client_move_right
         self.actions[pb.ActionType.MoveLeft] = self.client_move_left
-
         self.actions[pb.ActionType.HalfDashLeft] = self.client_half_dash_left
         self.actions[pb.ActionType.FullDashLeft] = self.client_full_dash_left
         self.actions[pb.ActionType.HalfDashRight] = self.client_half_dash_right
         self.actions[pb.ActionType.FullDashRight] = self.client_full_dash_right
+        self.actions[pb.ActionType.HalfDashUp] = self.client_half_dash_up
+        self.actions[pb.ActionType.FullDashUp] = self.client_full_dash_up
+        self.actions[pb.ActionType.HalfDashDown] = self.client_half_dash_down
+        self.actions[pb.ActionType.FullDashDown] = self.client_full_dash_down
 
     def __load_map(self):
         self.map = []
@@ -96,6 +99,34 @@ class Server():
     async def client_full_dash_right(self, client):
         client.position[0] = max(0, client.position[0] + 8)
         print(f"[+] client: {client.user_id} is full dash right")
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+    async def client_half_dash_up(self, client):
+        client.position[1] = max(0, client.position[1] - 4)
+        print(f"[+] client: {client.user_id} is half dash up")
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+    async def client_full_dash_up(self, client):
+        client.position[1] = max(0, client.position[1] - 8)
+        print(f"[+] client: {client.user_id} is full dash up")
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+    async def client_half_dash_down(self, client):
+        client.position[1] = max(0, client.position[1] + 4)
+        print(f"[+] client: {client.user_id} is half dash down")
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+    async def client_full_dash_down(self, client):
+        client.position[1] = max(0, client.position[1] + 8)
+        print(f"[+] client: {client.user_id} is full dash down")
         update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
                                         x=client.position[0],
                                         y=client.position[1]))

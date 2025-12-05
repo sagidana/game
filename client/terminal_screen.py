@@ -39,6 +39,8 @@ RESTORE_CURSOR = "\x1b[u"
 CLEAR_LINE = "\x1b[2K"
 CLEAR = "\x1b[2J"
 
+CTRL_B_KEY = 2
+CTRL_C_KEY = 3
 CTRL_D_KEY = 4
 CTRL_F_KEY = 6
 CTRL_H_KEY = 8
@@ -237,3 +239,22 @@ class Screen():
 
                 self.state[user] = (x,y)
                 self.draw()
+
+
+if __name__=='__main__':
+    # import queue
+    # screen = Screen(queue.Queue())
+    # screen.run()
+
+    old_stdin_settings = tcgetattr(sys.stdin)
+    r = setraw(sys.stdin.fileno())
+    key = sys.stdin.read(1)
+    while key != CTRL_C_KEY:
+        print(f"{key=}")
+        key = ord(sys.stdin.read(1))
+
+
+
+    tcsetattr(  sys.stdin,
+                TCSADRAIN,
+                old_stdin_settings)
