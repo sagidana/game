@@ -26,6 +26,11 @@ class Server():
         self.actions[pb.ActionType.MoveRight] = self.client_move_right
         self.actions[pb.ActionType.MoveLeft] = self.client_move_left
 
+        self.actions[pb.ActionType.HalfDashLeft] = self.client_half_dash_left
+        self.actions[pb.ActionType.FullDashLeft] = self.client_full_dash_left
+        self.actions[pb.ActionType.HalfDashRight] = self.client_half_dash_right
+        self.actions[pb.ActionType.FullDashRight] = self.client_full_dash_right
+
     def __load_map(self):
         self.map = []
         with open('server/map') as map_file:
@@ -62,6 +67,35 @@ class Server():
     async def client_move_left(self, client):
         client.position[0] = max(0, client.position[0] - 1)
         print(f"[+] client: {client.user_id} is moving left")
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+
+    async def client_half_dash_left(self, client):
+        client.position[0] = max(0, client.position[0] - 4)
+        print(f"[+] client: {client.user_id} is half dash left")
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+    async def client_full_dash_left(self, client):
+        client.position[0] = max(0, client.position[0] - 8)
+        print(f"[+] client: {client.user_id} is full dash left")
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+    async def client_half_dash_right(self, client):
+        client.position[0] = max(0, client.position[0] + 4)
+        print(f"[+] client: {client.user_id} is half dash right")
+        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
+                                        x=client.position[0],
+                                        y=client.position[1]))
+        return update.SerializeToString()
+    async def client_full_dash_right(self, client):
+        client.position[0] = max(0, client.position[0] + 8)
+        print(f"[+] client: {client.user_id} is full dash right")
         update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
                                         x=client.position[0],
                                         y=client.position[1]))

@@ -32,6 +32,15 @@ class Client():
     def action_left(self):
         return pb.PlayerMessage(action=pb.ActionType.MoveLeft)
 
+    def action_half_dash_left(self):
+        return pb.PlayerMessage(action=pb.ActionType.HalfDashLeft)
+    def action_full_dash_left(self):
+        return pb.PlayerMessage(action=pb.ActionType.FullDashLeft)
+    def action_half_dash_right(self):
+        return pb.PlayerMessage(action=pb.ActionType.HalfDashRight)
+    def action_full_dash_right(self):
+        return pb.PlayerMessage(action=pb.ActionType.FullDashRight)
+
     def init_actions(self):
         self.actions = {}
 
@@ -40,12 +49,17 @@ class Client():
         self.actions['h'] = self.action_left
         self.actions['l'] = self.action_right
 
+        self.actions['w'] = self.action_half_dash_right
+        self.actions['W'] = self.action_full_dash_right
+        self.actions['b'] = self.action_half_dash_left
+        self.actions['B'] = self.action_full_dash_left
+
     async def sender(self, websocket):
         while True:
             try:
                 key = await self.input_queue.get()
 
-                # log.glog(f"[+] {key=}")
+                log.glog(f"[+] {key=}")
                 if key == '\x03':
                     await websocket.close()
                     break; # ctrl-c

@@ -20,6 +20,14 @@ enum ActionType {
   MoveDown = 2;
   MoveRight = 3;
   MoveLeft = 4;
+  HalfDashUp = 5;
+  FullDashUp = 6;
+  HalfDashDown = 7;
+  FullDashDown = 8;
+  HalfDashLeft = 9;
+  FullDashLeft = 10;
+  HalfDashRight = 11;
+  FullDashRight = 12;
 }
 
 message PlayerMessage {

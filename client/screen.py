@@ -8,7 +8,6 @@ class Screen():
         self.main_loop = main_loop
         self.input_queue = input_queue
         self.updates_queue = updates_queue
-        self.ctrl_c_happened = False
 
         self.window_height_in_pxls = 800
         self.window_width_in_pxls = 1200
@@ -23,7 +22,7 @@ class Screen():
         self.map_y = 0
         self.map_height = 0
         self.map_width = 0
-        self.map_data = 0
+        self.map_data = []
 
         self.current_x = 0
         self.current_y = 0
@@ -35,16 +34,31 @@ class Screen():
         future.result()
 
     def forward_key_presses(self):
-        if  is_key_down(KeyboardKey.KEY_LEFT_CONTROL) and \
-            is_key_down(KeyboardKey.KEY_C):
-            if not self.ctrl_c_happened:
+        if is_key_pressed(KeyboardKey.KEY_C):
+            if  is_key_down(KeyboardKey.KEY_LEFT_CONTROL):
                 self.send_key_to_main_loop('\x03')
-                self.ctrl_c_happened = True
-
-        if is_key_down(KeyboardKey.KEY_H): self.send_key_to_main_loop('h')
-        if is_key_down(KeyboardKey.KEY_J): self.send_key_to_main_loop('j')
-        if is_key_down(KeyboardKey.KEY_K): self.send_key_to_main_loop('k')
-        if is_key_down(KeyboardKey.KEY_L): self.send_key_to_main_loop('l')
+        if is_key_down(KeyboardKey.KEY_U):
+          if  is_key_down(KeyboardKey.KEY_LEFT_CONTROL):
+              self.send_key_to_main_loop('')
+        if is_key_down(KeyboardKey.KEY_D):
+          if  is_key_down(KeyboardKey.KEY_LEFT_CONTROL):
+              self.send_key_to_main_loop('')
+        if is_key_pressed(KeyboardKey.KEY_H):
+            self.send_key_to_main_loop('h')
+        if is_key_pressed(KeyboardKey.KEY_J):
+            self.send_key_to_main_loop('j')
+        if is_key_pressed(KeyboardKey.KEY_K):
+            self.send_key_to_main_loop('k')
+        if is_key_pressed(KeyboardKey.KEY_L):
+            self.send_key_to_main_loop('l')
+        if is_key_pressed(KeyboardKey.KEY_B):
+            pressed = 'b'
+            if  is_key_down(KeyboardKey.KEY_LEFT_SHIFT): pressed = 'B'
+            self.send_key_to_main_loop(pressed)
+        if is_key_pressed(KeyboardKey.KEY_W):
+            pressed = 'w'
+            if  is_key_down(KeyboardKey.KEY_LEFT_SHIFT): pressed = 'W'
+            self.send_key_to_main_loop(pressed)
 
     def handle_updates(self) -> bool:
         try:
@@ -97,7 +111,14 @@ class Screen():
                 x_in_pxls = self.block_width * x
                 y_in_pxls = self.block_height * y
 
-                draw_rectangle(x_in_pxls, y_in_pxls, self.block_width, self.block_height, BLACK);
+                map_position_x = self.window_x + x
+                map_position_y = self.window_y + y
+
+                curr_block_value = self.map_data[map_position_y * self.map_width + map_position_x]
+                if curr_block_value == ord('0'):
+                    draw_rectangle(x_in_pxls, y_in_pxls, self.block_width, self.block_height, BLACK);
+                if curr_block_value == ord('1'):
+                    draw_rectangle(x_in_pxls, y_in_pxls, self.block_width, self.block_height, GRAY);
 
     def draw_current(self):
         x_in_pxls = (self.current_x - self.window_x) * self.block_width
@@ -119,19 +140,17 @@ class Screen():
         init_window(self.window_width_in_pxls,
                     self.window_height_in_pxls,
                     "Vimpire")
-        set_target_fps(30)
+        set_target_fps(60)
 
         while not window_should_close():
+            if not self.handle_updates(): break
             self.forward_key_presses()
 
             begin_drawing()
+
             clear_background(WHITE)
 
             self.draw_map()
-
-            if not self.handle_updates():
-                end_drawing()
-                break
 
             self.draw_current()
             self.draw_others()
