@@ -6,11 +6,30 @@ import websockets
 import asyncio
 import time
 
+from functools import wraps
+
+def propagate(func):
+    @wraps(func)
+    async def wrapper(self, client):
+        result = await func(self, client)
+
+        action_name = ''.join([name.capitalize() for name in func.__name__.split('_')[1:]])
+        action = getattr(pb.ActionType, action_name)
+
+        update = pb.PlayerUpdate(   id=client.user_id,
+                                    x=client.position[0],
+                                    y=client.position[1],
+                                    action=action)
+        await self.tick_queue.put(update)
+        return result
+    return wrapper
+    # return decorator
 
 class Server():
     def __init__(self, port=8765, ticks=30):
         self.to_exit = False
         self.ticks = ticks
+        self.tick_queue = asyncio.Queue()
         self.port = port
         self.connected_clients = {}
         self.connected_clients_lock = asyncio.Lock()
@@ -21,6 +40,7 @@ class Server():
 
     def __init_actions(self):
         self.actions = {}
+        self.actions[pb.ActionType.Disconnect] = self.client_disconnect
         self.actions[pb.ActionType.MoveUp] = self.client_move_up
         self.actions[pb.ActionType.MoveDown] = self.client_move_down
         self.actions[pb.ActionType.MoveRight] = self.client_move_right
@@ -45,92 +65,69 @@ class Server():
         for raw in self.map:
             self.map_data.extend(raw)
 
+    @propagate
+    async def client_disconnect(self, client):
+        return True
+    @propagate
     async def client_move_up(self, client):
         client.position[1] = max(0, client.position[1] - 1)
         print(f"[+] client: {client.user_id} is moving up")
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
+        return False
+    @propagate
     async def client_move_down(self, client):
-        client.position[1] += 1
         print(f"[+] client: {client.user_id} is moving down")
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
+        client.position[1] += 1
+        return False
+    @propagate
     async def client_move_right(self, client):
         client.position[0] =client.position[0] + 1
         print(f"[+] client: {client.user_id} is moving right")
-
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
+        return False
+    @propagate
     async def client_move_left(self, client):
         client.position[0] = max(0, client.position[0] - 1)
         print(f"[+] client: {client.user_id} is moving left")
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
-
+        return False
+    @propagate
     async def client_half_dash_left(self, client):
         client.position[0] = max(0, client.position[0] - 4)
         print(f"[+] client: {client.user_id} is half dash left")
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
+        return False
+    @propagate
     async def client_full_dash_left(self, client):
         client.position[0] = max(0, client.position[0] - 8)
         print(f"[+] client: {client.user_id} is full dash left")
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
+        return False
+    @propagate
     async def client_half_dash_right(self, client):
         client.position[0] = max(0, client.position[0] + 4)
         print(f"[+] client: {client.user_id} is half dash right")
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
+        return False
+    @propagate
     async def client_full_dash_right(self, client):
         client.position[0] = max(0, client.position[0] + 8)
         print(f"[+] client: {client.user_id} is full dash right")
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
+        return False
+    @propagate
     async def client_half_dash_up(self, client):
         client.position[1] = max(0, client.position[1] - 4)
         print(f"[+] client: {client.user_id} is half dash up")
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
+        return False
+    @propagate
     async def client_full_dash_up(self, client):
         client.position[1] = max(0, client.position[1] - 8)
         print(f"[+] client: {client.user_id} is full dash up")
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
+        return False
+    @propagate
     async def client_half_dash_down(self, client):
         client.position[1] = max(0, client.position[1] + 4)
         print(f"[+] client: {client.user_id} is half dash down")
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
+        return False
+    @propagate
     async def client_full_dash_down(self, client):
         client.position[1] = max(0, client.position[1] + 8)
         print(f"[+] client: {client.user_id} is full dash down")
-        update = pb.ServerMessage(current=pb.PlayerUpdate(id=client.user_id,
-                                        x=client.position[0],
-                                        y=client.position[1]))
-        return update.SerializeToString()
+        return False
 
     async def client_loop(self, client):
         # first update to each client is the map and its current location
@@ -143,12 +140,9 @@ class Server():
             player_message = pb.PlayerMessage()
             player_message.ParseFromString(message_bytes)
 
-            if player_message.action == pb.ActionType.Disconnect: return
-
             if player_message.action in self.actions:
-                buffer = await self.actions[player_message.action](client)
-                if buffer:
-                    await client.websocket.send(buffer)
+                to_exit = await self.actions[player_message.action](client)
+                if to_exit: break
             else:
                 print(f"[!] client: {client.user_id} action ({action.type}) wasnt' found in supported actions.")
 
@@ -187,19 +181,26 @@ class Server():
                 print(f"[+] client: {current_client.user_id} disconnected.")
         except websockets.exceptions.ConnectionClosedOK: pass
 
+    async def drain_updates_queue(self):
+        items = []
+        try:
+            while True:
+                items.append(self.tick_queue.get_nowait())
+        except asyncio.QueueEmpty: pass
+        return items
+
     async def tick(self):
-        async with self.connected_clients_lock:
+        players_updates = await self.drain_updates_queue()
+
+        async with self.connected_clients_lock: # lock the list so new clients wont interrupt.
             # construct the update to all players
             for curr_user_id in self.connected_clients:
-                players_updates = []
-                for inner_user_id in self.connected_clients:
-                    if inner_user_id == curr_user_id: continue
-                    c = self.connected_clients[inner_user_id]
-                    players_updates.append(pb.PlayerUpdate(id=c.user_id, x=c.position[0], y=c.position[1]))
+                # exclude this user from its own updates.
+                curr_updates = [update for update in players_updates if update.id != curr_user_id]
 
                 c = self.connected_clients[curr_user_id]
                 current = pb.PlayerUpdate(id=c.user_id, x=c.position[0], y=c.position[1])
-                server_message = pb.ServerMessage(current=current, players_updates=players_updates)
+                server_message = pb.ServerMessage(current=current, players_updates=curr_updates)
                 await self.connected_clients[curr_user_id].websocket.send(server_message.SerializeToString())
 
     async def ticks_loop(self):

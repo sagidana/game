@@ -1,7 +1,7 @@
 from random import randint
 from PIL import Image
 
-def main():
+def _main():
     # frame_colors = [
             # [0x45, 0x68, 0x82],
             # # [0xE3, 0xE3, 0xE3],
@@ -113,6 +113,40 @@ def main():
                 random_image.save(f"tile{counter:01}.jpg")
                 counter += 1
 
+def generate(name, fill, frame, frame_thickness=5):
+    width = height = 150
+
+    pixels = []
+    for y in range(height):
+        pixels.append(list())
+        for x in range(width):
+            pixels[y].append(list())
+
+    for y in range(height):
+        for x in range(width):
+            pixels[y][x] = fill
+
+    for y in range(height):
+        for i in range(frame_thickness):
+            pixels[y][i] = frame
+            pixels[y][(i+1) * -1] = frame
+    for i in range(frame_thickness):
+        for x in range(width):
+            pixels[i][x] = frame
+            pixels[(i+1) * -1][x] = frame
+
+    # write to file
+    raw_pixels = []
+    for y in range(height):
+        for x in range(width):
+            raw_pixels.extend(pixels[y][x])
+
+    random_image = Image.frombytes('RGB', (width, height), bytes(raw_pixels))
+    random_image.save(f"{name}.jpg")
+
 if __name__=='__main__':
-    main()
+    generate('water', [0x23, 0x4C, 0x6A], [0x45, 0x68, 0x82])
+
+    # generate('floor', [0x37, 0x1d, 0x10], [0x23, 0x17, 0x09])
+    generate('floor', [0x37, 0x1d, 0x10], [0x6F, 0x4F, 0x1D], frame_thickness=2)
 

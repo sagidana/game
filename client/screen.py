@@ -33,31 +33,6 @@ CTRL_BACKSLASH_KEY =        chr(28)
 CTRL_CLOSE_BRACKET_KEY =    chr(29)
 BACKSPACE_KEY =             chr(127)
 
-themes = {
-        'default': {
-            'floor': {
-                'fill': [
-                    #001845
-                    Color(0x00, 0x18, 0x45, 0xFF),
-                    #002855
-                    Color(0x00, 0x28, 0x55, 0xFF),
-                    ],
-                'lines': [
-                    #33415c
-                    Color(0x33, 0x41, 0x5C, 0xFF),
-                    #5c677d
-                    Color(0x5C, 0x67, 0x7D, 0xFF),
-                    ]
-            },
-            'failed': {
-                'floor': [
-                    Color(0x54, 0x3B, 0x24, 0xFF),
-                    Color(0x57, 0x3D, 0x24, 0xFF),
-                    ]
-                },
-            }
-        }
-
 # class Animation():
     # def __init__(self, start_x, start_y, end_x, end_y, time_to_happen=1.0):
         # self.finished = False
@@ -88,15 +63,17 @@ class Screen():
 
         init_window(1, 1, "Vimpire")
         monitor = get_current_monitor()
-        self.window_height_in_pxls = get_monitor_height(monitor) - 50
-        self.window_width_in_pxls = get_monitor_width(monitor) - 50
+        self.window_height_in_pxls = get_monitor_height(monitor) - 500
+        self.window_width_in_pxls = get_monitor_width(monitor) - 500
         close_window()
         self.block_height = 30
         self.block_width = int(self.block_height*0.6)
         self.window_width = int(self.window_width_in_pxls / self.block_width)
         self.window_height = int(self.window_height_in_pxls / self.block_height)
 
-        self.current_trail = trail.Trail(self.block_width, self.block_height, WHITE)
+        self.current_color = GRAY
+        self.current_trail_color = GRAY
+        self.current_trail = trail.Trail(self.block_width, self.block_height, self.current_trail_color)
 
         self.window_x = 0
         self.window_y = 0
@@ -111,15 +88,19 @@ class Screen():
         self.others = {}
 
     def load_resources(self):
+
+        water = load_image(f"./client/resources/water.jpg")
+        image_resize(water, self.block_width, self.block_height)
+        self.water = load_texture_from_image(water)
+
         floors = []
+        for i in range(1):
+            floors.append(load_image(f"./client/resources/floor.jpg"))
         self.floors = []
-        for i in range(36):
-                floors.append(load_image(f"./client/resources/tile{i}.jpg"))
         for floor in floors:
             image_resize(floor, self.block_width, self.block_height)
             self.floors.append(load_texture_from_image(floor))
 
-        # tree = load_image(f"./client/resources/tree.png")
         tree = load_image(f"./client/resources/tree2.png")
         image_resize(tree, self.block_width, self.block_height)
         self.tree = load_texture_from_image(tree)
@@ -253,7 +234,7 @@ class Screen():
         self.current_trail.draw()
         x_in_pxls = (self.current_x - self.window_x) * self.block_width
         y_in_pxls = (self.current_y - self.window_y) * self.block_height
-        draw_rectangle(x_in_pxls, y_in_pxls, self.block_width, self.block_height, WHITE);
+        draw_rectangle(x_in_pxls, y_in_pxls, self.block_width, self.block_height, self.current_color);
 
     def draw_others(self):
         for other_id in self.others:
@@ -262,16 +243,18 @@ class Screen():
 
             # TODO add check if in window
 
-            self.others[other_id]['trail'].draw()
             x_in_pxls = (other_x - self.window_x) * self.block_width
             y_in_pxls = (other_y - self.window_y) * self.block_height
+
+            self.others[other_id]['trail'].update(x_in_pxls, y_in_pxls)
+            self.others[other_id]['trail'].draw()
             draw_rectangle(x_in_pxls, y_in_pxls, self.block_width, self.block_height, RED);
 
     def run(self):
         init_window(self.window_width_in_pxls, self.window_height_in_pxls, "Vimpire")
         set_exit_key(KeyboardKey.KEY_NULL) # disable esc closing raylib window
         self.load_resources()
-        # set_target_fps(60)
+        set_target_fps(60)
 
         while not window_should_close():
             if not self.handle_updates(): break
