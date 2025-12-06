@@ -1,8 +1,11 @@
 from . import log
 import asyncio
+import math
+import time
 from random import randint
 
 from pyray import *
+from . import trail
 
 CTRL_B_KEY =                chr(2)
 CTRL_C_KEY =                chr(3)
@@ -55,18 +58,45 @@ themes = {
             }
         }
 
+# class Animation():
+    # def __init__(self, start_x, start_y, end_x, end_y, time_to_happen=1.0):
+        # self.finished = False
+        # self.start = (start_x, start_y)
+        # self.end = (end_x, end_y)
+        # self.distance = math.dist(self.start, self.end)
+        # self.time = 0
+        # self.velocity = self.distance / time_to_happen # speed required to end this in one second
+
+        # displacement_vector = tuple(end - start for start, end in zip(self.start, self.end))
+        # unit_direction_vector = tuple(comp / self.distance for comp in displacement_vector)
+        # self.velocity_vector = tuple(comp * self.velocity for comp in unit_direction_vector)
+
+
+    # def draw(self, deltatime):
+        # self.time += deltatime
+        # new_point = tuple(start + (vel_comp * self.time) for start, vel_comp in zip(self.start, self.velocity_vector))
+        # new_point = (int(new_point[0]), int(new_point[1]))
+        # draw_rectangle(new_point[0], new_point[1], 50, 50, WHITE)
+
+        # self.finished = new_point == self.end
+
 class Screen():
     def __init__(self, input_queue, updates_queue, main_loop):
         self.main_loop = main_loop
         self.input_queue = input_queue
         self.updates_queue = updates_queue
 
-        self.window_height_in_pxls = 800
-        self.window_width_in_pxls = 1200
-        self.block_height = 20
-        self.block_width = 12
+        init_window(1, 1, "Vimpire")
+        monitor = get_current_monitor()
+        self.window_height_in_pxls = get_monitor_height(monitor) - 50
+        self.window_width_in_pxls = get_monitor_width(monitor) - 50
+        close_window()
+        self.block_height = 30
+        self.block_width = int(self.block_height*0.6)
         self.window_width = int(self.window_width_in_pxls / self.block_width)
         self.window_height = int(self.window_height_in_pxls / self.block_height)
+
+        self.current_trail = trail.Trail(self.block_width, self.block_height, WHITE)
 
         self.window_x = 0
         self.window_y = 0
@@ -79,6 +109,20 @@ class Screen():
         self.current_x = 0
         self.current_y = 0
         self.others = {}
+
+    def load_resources(self):
+        floors = []
+        self.floors = []
+        for i in range(36):
+                floors.append(load_image(f"./client/resources/tile{i}.jpg"))
+        for floor in floors:
+            image_resize(floor, self.block_width, self.block_height)
+            self.floors.append(load_texture_from_image(floor))
+
+        # tree = load_image(f"./client/resources/tree.png")
+        tree = load_image(f"./client/resources/tree2.png")
+        image_resize(tree, self.block_width, self.block_height)
+        self.tree = load_texture_from_image(tree)
 
     def send_key_to_main_loop(self, key):
         future = asyncio.run_coroutine_threadsafe(self.input_queue.put(key),
@@ -128,19 +172,18 @@ class Screen():
         self.map_width = update[3]
         self.map_height = update[4]
         self.map_data = update[5]
-        self.local_map_data = [BLACK] * len(self.map_data)
+        self.local_map_data = [None] * len(self.map_data)
 
         for x in range(self.map_width):
             for y in range(self.map_height):
                 curr_index = y * self.map_width + x
                 map_value = self.map_data[curr_index]
                 # log.glog(f"{map_value=}")
-                if map_value == ord('0'): # floor
-                    self.local_map_data[curr_index] = themes['default']['floor']['fill'][randint(0, len(themes['default']['floor']['fill']) - 1)]
-                    continue
+                # if map_value == ord('0'): # floor
+                self.local_map_data[curr_index] = self.floors[randint(0, len(self.floors) - 1)]
 
                 # unknown type is black
-                self.local_map_data[curr_index] = BLACK
+                # self.local_map_data[curr_index] = None
 
     def handle_updates(self) -> bool:
         try:
@@ -157,8 +200,7 @@ class Screen():
                     current_x = item[2]
                     current_y = item[3]
 
-                    # TODO: movement animation
-                    log.glog(f"[+] current move: {current_x}, {current_y}")
+                    self.current_trail.update(current_x*self.block_width, current_y*self.block_height)
 
                     self.current_x = current_x
                     self.current_y = current_y
@@ -168,14 +210,19 @@ class Screen():
                     player_x = item[2]
                     player_y = item[3]
 
-                    self.others[player_id] = [player_x, player_y]
+                    if player_id not in self.others:
+                        self.others[player_id] = {
+                                'trail': trail.Trail(self.block_width, self.block_height, RED),
+                                'pos': [player_x, player_y]
+                                }
+                    else:
+                        self.others[player_id]['trail'].update(player_x*self.block_width, player_y*self.block_height)
+                        self.others[player_id]['pos'] = [player_x, player_y]
 
         except asyncio.QueueEmpty:
             item = None
         return True
 
-    def draw_tile(self, x, y):
-        pass
     def draw_map(self):
         # TODO: window x and y adjustments based on current position
 
@@ -196,37 +243,26 @@ class Screen():
                 curr_block_value = self.map_data[map_position_y * self.map_width + map_position_x]
                 local_block_value = self.local_map_data[map_position_y * self.map_width + map_position_x]
 
-                rectangle = Rectangle(x_in_pxls, y_in_pxls, self.block_width, self.block_height)
-
                 if curr_block_value == ord('0'): # floor
-                    draw_rectangle_rec(rectangle, local_block_value);
-                    # draw_rectangle(x_in_pxls,
-                                   # y_in_pxls,
-                                   # self.block_width,
-                                   # self.block_height,
-                                   # local_block_value);
-
-                    # draw_rectangle_lines_ex(rectangle, 0.5, Color(0,0,0,255));
-                    # draw_rectangle_lines_ex(x_in_pxls,
-                                         # y_in_pxls,
-                                         # self.block_width,
-                                         # self.block_height,
-                                         # Color(0,0,0,255));
-                if curr_block_value == ord('1'):
-                    draw_rectangle(x_in_pxls, y_in_pxls, self.block_width, self.block_height, GRAY);
+                    draw_texture(local_block_value, x_in_pxls, y_in_pxls, WHITE)
+                if curr_block_value == ord('1'): # tree
+                    draw_texture(local_block_value, x_in_pxls, y_in_pxls, WHITE)
+                    draw_texture(self.tree, x_in_pxls, y_in_pxls, WHITE)
 
     def draw_current(self):
+        self.current_trail.draw()
         x_in_pxls = (self.current_x - self.window_x) * self.block_width
         y_in_pxls = (self.current_y - self.window_y) * self.block_height
         draw_rectangle(x_in_pxls, y_in_pxls, self.block_width, self.block_height, WHITE);
 
     def draw_others(self):
         for other_id in self.others:
-            other_x = self.others[other_id][0]
-            other_y = self.others[other_id][1]
+            other_x = self.others[other_id]['pos'][0]
+            other_y = self.others[other_id]['pos'][1]
 
             # TODO add check if in window
 
+            self.others[other_id]['trail'].draw()
             x_in_pxls = (other_x - self.window_x) * self.block_width
             y_in_pxls = (other_y - self.window_y) * self.block_height
             draw_rectangle(x_in_pxls, y_in_pxls, self.block_width, self.block_height, RED);
@@ -234,6 +270,7 @@ class Screen():
     def run(self):
         init_window(self.window_width_in_pxls, self.window_height_in_pxls, "Vimpire")
         set_exit_key(KeyboardKey.KEY_NULL) # disable esc closing raylib window
+        self.load_resources()
         # set_target_fps(60)
 
         while not window_should_close():
